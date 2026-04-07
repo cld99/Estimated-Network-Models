@@ -17,8 +17,8 @@ $$
 &\qquad z_k \\
 &\qquad \downarrow \\
 z_j &\rightarrow \theta_{jk} \rightarrow y \leftarrow x \\
-&\qquad\qquad\;\;\uparrow \\
-&\qquad\qquad\;\;\beta
+&\qquad\qquad\uparrow \\
+&\qquad\qquad\;\beta
 \end{aligned}
 $$
 
@@ -26,7 +26,7 @@ $x_i \sim \mathcal{N}(0, \Sigma_x)$
 
 $\Sigma_x = \sigma_x^2 \big(\rho^{|j-k|}\big)_{j,k=1}^p$
 
-$ \theta_{jk} \sim \mathcal{N}\left(\alpha - \|z_j - z_k\|_2^2,\; \sigma_\theta^2\right) $
+$\theta_{jk} \sim \mathcal{N}(\alpha - \|z_j - z_k\|_2^2,\; \sigma_\theta^2)$
 
 $z_j \sim \mathcal{N}(0, \sigma_z^2 I_d)$
 
