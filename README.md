@@ -43,7 +43,7 @@ z_j \sim \mathcal{N}(0, \sigma_z^2 I_d)
 
 ```math
 y_i \sim \mathcal{N}(
-\beta_0 + \beta^\top x_i + \sum_{j<k}\theta_{jk}x_{ij}x_{ik},
+\beta_0 + \beta^\top x_i + \sum_{j \lt k}\theta_{jk}x_{ij}x_{ik},
 \; \sigma_y^2
 )
 ```
@@ -63,7 +63,7 @@ p(y \mid x, \Theta)
 =
 \prod_{i=1}^n
 \mathcal{N}(
-y_i \mid \beta_0 + \beta^\top x_i + \sum_{j<k}\theta_{jk}x_{ij}x_{ik},
+y_i \mid \beta_0 + \beta^\top x_i + \sum_{j \lt k}\theta_{jk}x_{ij}x_{ik},
 \; \sigma_y^2
 )
 ```
@@ -78,7 +78,7 @@ p(x)
 ```math
 p(\Theta \mid Z)
 =
-\prod_{j<k}
+\prod_{j \lt k}
 \mathcal{N}(
 \theta_{jk} \mid \alpha - \|z_j - z_k\|_2^2,
 \; \sigma_\theta^2
