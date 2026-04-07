@@ -33,9 +33,9 @@ $$
 \Sigma_x = \sigma_x^2 \left(\rho^{|j-k|}\right)_{j,k=1,\dots,p}
 $$
 
-$$
+```math
 \theta_{jk} \sim \mathcal{N}\left(\alpha - \|z_j - z_k\|_2^2,\; \sigma_\theta^2\right)
-$$
+```
 
 $$
 z_j \sim \mathcal{N}(0, \sigma_z^2 I_d)
@@ -49,72 +49,72 @@ $$
 
 The model factorization is
 
-$$
+```math
 p(y, x, \Theta, Z) = p(y \mid x, \Theta)\, p(x)\, p(\Theta \mid Z)\, p(Z)
-$$
+```
 
 with
 
-$$
+```math
 p(y \mid x, \Theta)
 =
 \prod_{i=1}^n
 \mathcal{N}\left(
 y_i \,\middle|\, \beta_0 + \beta^\top x_i + \sum_{j<k}\theta_{jk}x_{ij}x_{ik},\; \sigma_y^2
 \right)
-$$
+```
 
-$$
+```math
 p(x)
 =
 \prod_{i=1}^n
 \mathcal{N}(x_i \mid 0, \Sigma_x)
-$$
+```
 
-$$
+```math
 p(\Theta \mid Z)
 =
 \prod_{j<k}
 \mathcal{N}\left(
 \theta_{jk} \,\middle|\, \alpha - \|z_j - z_k\|_2^2,\; \sigma_\theta^2
 \right)
-$$
+```
 
-$$
+```math
 p(Z)
 =
 \prod_{j=1}^p \prod_{l=1}^d
 \mathcal{N}(z_{jl} \mid 0, \sigma_z^2)
-$$
+```
 
 The full negative log-likelihood is
 
-$$
+```math
 \mathrm{NLL} = -\log p(y, x, \Theta, Z)
-$$
+```
 
 So,
 
-$$
+```math
 \mathrm{NLL}
 =
 -\log p(y \mid x, \Theta)
 -\log p(x)
 -\log p(\Theta \mid Z)
 -\log p(Z)
-$$
+```
 
 Since \(p(x)\) does not depend on the trainable parameters, it is treated as a constant during optimization.
 
 Therefore, the training loss is
 
-$$
+```math
 \mathcal{L}
 =
 -\log p(y \mid x, \Theta)
 -\log p(\Theta \mid Z)
 -\log p(Z)
-$$
+```
 
 ### 2.3 Assessment
 
