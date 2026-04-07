@@ -25,6 +25,8 @@ z_j &\rightarrow \theta_{jk} \rightarrow y \leftarrow x \\
 \end{aligned}
 ```
 
+
+
 ```math
 x_i \sim \mathcal{N}(0, \Sigma_x)
 ```
@@ -50,7 +52,7 @@ y_i \sim \mathcal{N}(
 
 ### 2.2 Parameter prediction
 
-The model factorization is
+The model likelihood is
 
 ```math
 p(y, x, \Theta, Z) = p(y \mid x, \Theta)\, p(x)\, p(\Theta \mid Z)\, p(Z)
@@ -96,12 +98,7 @@ The full negative log-likelihood is
 
 ```math
 \mathrm{NLL} = -\log p(y, x, \Theta, Z)
-```
 
-So,
-
-```math
-\mathrm{NLL}
 =
 -\log p(y \mid x, \Theta)
 -\log p(x)
