@@ -26,7 +26,7 @@ def generate_theta(Z, alpha, sigma_theta):
     p = Z.shape[0]
     Theta = np.zeros((p, p))
     for j in range(p):
-        for k in range(p):
+        for k in range(j+1, p):
             epsilon_jk = np.random.normal(0, sigma_theta)
             Theta[j, k] = alpha - np.sum((Z[j] - Z[k])**2) + epsilon_jk
             Theta[k, j] = Theta[j, k]
@@ -35,9 +35,6 @@ def generate_theta(Z, alpha, sigma_theta):
     return Theta
 
 # x_i ~ N(0,sigma_x^2 I_p)   X: shape = (n, p)
-# def generate_X(n, p, sigma_x, cov_type='iid', rho=0.5):
-#     X = np.random.normal(0, sigma_x, size=(n, p))
-#     return X
 def generate_X(n, p, sigma_x, cov_type='iid', rho=0.5):
     if cov_type == 'iid':
         # The covariance between features is 0, they are independent of each other

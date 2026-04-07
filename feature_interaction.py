@@ -1,8 +1,10 @@
 import numpy as np
-from simu_feature_interaction import simulate_data
+from feature_interaction_simu import simulate_data
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.distributions import Normal
+from torch import normal
 
 
 def build_interaction_features(X):
@@ -18,91 +20,120 @@ def build_interaction_features(X):
     X_inter = np.column_stack(cols)
     return X_inter, pair_idx
 
-class InteractionFeatureModel(nn.Module):
-    def __init__(self, p, d,use_latent_penalty=False, regularization=False,
-                 gamma=0.0, lambda_beta=0.0, lambda_theta=0.0):
+class FeatureInteractionModel(nn.Module):
+    def __init__(self, p, d,):
         """
         p: dimension of X
         d: dimension of latent space
-        regularization: whether to include L2 regularization
-        lambda_beta: L2 penalty coefficient for beta
-        lambda_theta: L2 penalty coefficient for Theta
-        gamma: latent-space penalty coefficient
         """
         super().__init__()
 
         self.p = p
         self.d = d
-        self.use_latent_penalty = use_latent_penalty
-
-        self.lambda_beta = lambda_beta
-        self.lambda_theta = lambda_theta
-
+        # regression parameters
         self.beta0 = nn.Parameter(torch.zeros(1))
         self.beta = nn.Parameter(torch.zeros(p))
-        self.Theta = nn.Parameter(torch.zeros(p, p))
+        # interaction matrix parameters
+        # self.Theta = nn.Parameter(torch.zeros(p, p))
+        self.theta_upper = nn.Parameter(torch.zeros(p * (p - 1) // 2))
+        # latent parameters
+        self.Z = nn.Parameter(torch.randn(p, d))
+        self.alpha = nn.Parameter(torch.zeros(1))
+        
+        # log variance parameters
+        # sigma_y^2 = exp(log_sigma_y^2})  use log variance so variance is always positive after exp()
+        self.log_sigma_y2 = nn.Parameter(torch.zeros(1))
+        self.log_sigma_theta2 = nn.Parameter(torch.zeros(1))
+        self.log_sigma_z2 = nn.Parameter(torch.zeros(1))
+        # self.log_sigma_x2 = nn.Parameter(torch.zeros(1)) 
 
-        # latent structure parameters for using latent space to get theta
-        if self.use_latent_penalty:
-            self.Z = nn.Parameter(torch.randn(p, d))
-            self.alpha_ls = nn.Parameter(torch.zeros(1))
             
     def forward(self, X):
+        """
+        y_i = beta0 + sum_j beta_j x_ij + sum_{j<k} Theta_jk x_ij x_ik
+        """
         n, p = X.shape
         y_hat = self.beta0 + X @ self.beta
 
         interaction_term = torch.zeros(n, device=X.device)
+        idx = 0
         for j in range(p):
             for k in range(j + 1, p):
-                interaction_term += self.Theta[j, k] * X[:, j] * X[:, k]
+                # interaction_term += self.Theta[j, k] * X[:, j] * X[:, k]
+                interaction_term += self.theta_upper[idx] * X[:, j] * X[:, k]
+                idx += 1
 
         y_hat = y_hat + interaction_term
         return y_hat
     
-    def _latent_penalty(self):
-        # sum_{j<k} [Theta_jk - (alpha - ||z_j-z_k||^2)]^2
-        if not self.use_latent_penalty:
-            return torch.tensor(0.0, device=self.beta.device)
-
-        penalty = 0.0
+    def _nll_theta_given_z(self):
+        """
+        -log p(Theta | Z)
+        Assume for j<k: Theta_jk ~ N(alpha - ||z_j - z_k||^2, sigma_theta^2)
+        """
+        loss_theta_given_z = 0.0
+        sigma_theta = torch.exp(0.5 * self.log_sigma_theta2)
         idx = 0
         for j in range(self.p):
-            for k in range(j + 1, self.p):
-                latent_value = self.alpha_ls - torch.sum((self.Z[j] - self.Z[k]) ** 2)
-                penalty = penalty + (self.theta_vec[idx] - latent_value) ** 2
+            for k in range(j+1, self.p):
+                mean_jk = self.alpha - torch.sum((self.Z[j] - self.Z[k]) ** 2)
+                dist = Normal(loc=mean_jk, scale=sigma_theta)
+                # loss_theta_given_z -= dist.log_prob(self.Theta[j, k])
+                loss_theta_given_z -= dist.log_prob(self.theta_upper[idx])
                 idx += 1
 
-        return penalty
-   
-    def _regularization_loss(self):
-        reg_loss = 0.0
-
-        if self.regularization:
-            reg_loss = reg_loss + self.lambda_beta * torch.sum(self.beta ** 2)
-
-            if self.interaction:
-                theta_penalty = 0.0
-                for j in range(self.p):
-                    for k in range(j + 1, self.p):
-                        theta_penalty += self.Theta[j, k] ** 2
-
-                reg_loss = reg_loss + self.lambda_theta * theta_penalty
-
-        return reg_loss
+        return loss_theta_given_z
     
-    def _prediction_loss(self, X, y):
-        y_hat = self.forward(X)
-        pred_loss = torch.mean((y - y_hat) ** 2)
-        return pred_loss
+    def _nll_z(self):
+        """
+        -log p(Z)
+        Assume each entry Z_jl ~ N(0, sigma_z^2)
+        """
+        loss_z = 0.0
+        sigma_z = torch.exp(0.5 * self.log_sigma_z2)
+        for j in range(self.p):
+            for l in range(self.d):
+                dist = Normal(loc=0, scale=sigma_z)
+                loss_z -= dist.log_prob(self.Z[j,l])
+        
+        return loss_z
     
-    def _loss(self, X, y):
-        pred_loss = self._prediction_loss(X, y)
-        reg_loss = self._regularization_loss()
-
-        if self.use_latent_penalty:
-            ls_loss = self.gamma * self._latent_penalty()
-        else:
-            ls_loss = 0.0
-
-        total_loss = pred_loss + reg_loss + ls_loss
+    def _nll_y_given_x_theta(self, X, y):
+        """
+        -log p(y | X, Theta)
+        Assume y_i ~ N(mean_yi, sigma_y^2)
+        """
+        sigma_y = torch.exp(0.5 * self.log_sigma_y2)
+        y_hat = self.forward(X).squeeze()
+        dist = Normal(loc=y_hat, scale=sigma_y)
+        loss_y_given_x_theta = -dist.log_prob(y).sum()
+        return loss_y_given_x_theta
+        
+    
+    def loss(self, X, y):
+        """
+        total loss = -log p(y | X, Theta) - log p(Theta | Z) - log p(Z) - log p(X)
+        In this setting, p(X) is constant with respect to the model parameters, so it does not affect optimization.
+        """
+        loss_y_given_x_theta = self._nll_y_given_x_theta(X, y)
+        loss_theta_given_z = self._nll_theta_given_z()
+        loss_z = self._nll_z()
+        total_loss = loss_y_given_x_theta + loss_theta_given_z + loss_z
+        
         return total_loss
+    
+    def fit(self, X, y, lr=0.01, epochs=1000 ):
+        optimizer = torch.optim.Adam(self.parameters(), lr=lr)
+        self.train()
+        for epoch in range(epochs):
+            optimizer.zero_grad()
+            total_loss = self.loss(X, y)
+            total_loss.backward()
+            optimizer.step()
+            if epoch % 100 == 0:
+                print(f"Epoch {epoch}: loss = {total_loss.item():.6f}")
+        return
+
+    
+    def predict(self, X):
+        return self.forward(X)
