@@ -29,21 +29,24 @@ $$
 x_i \sim \mathcal{N}(0, \Sigma_x)
 $$
 
-$$
+```math
 \Sigma_x = \sigma_x^2 \left(\rho^{|j-k|}\right)_{j,k=1,\dots,p}
-$$
+```
 
 ```math
 \theta_{jk} \sim \mathcal{N}\left(\alpha - \|z_j - z_k\|_2^2,\; \sigma_\theta^2\right)
 ```
 
-$$
+```math
 z_j \sim \mathcal{N}(0, \sigma_z^2 I_d)
-$$
+```
 
-$$
-y_i \sim \mathcal{N}\left(\beta_0 + \beta^\top x_i + \sum_{j<k}\theta_{jk}x_{ij}x_{ik},\; \sigma_y^2\right)
-$$
+```math
+y_i \sim \mathcal{N}\left(
+\beta_0 + \beta^\top x_i + \sum_{j<k}\theta_{jk}x_{ij}x_{ik},
+\; \sigma_y^2
+\right)
+```
 
 ### 2.2 Parameter prediction
 
@@ -60,7 +63,8 @@ p(y \mid x, \Theta)
 =
 \prod_{i=1}^n
 \mathcal{N}\left(
-y_i \,\middle|\, \beta_0 + \beta^\top x_i + \sum_{j<k}\theta_{jk}x_{ij}x_{ik},\; \sigma_y^2
+y_i \mid \beta_0 + \beta^\top x_i + \sum_{j<k}\theta_{jk}x_{ij}x_{ik},
+\; \sigma_y^2
 \right)
 ```
 
@@ -76,7 +80,8 @@ p(\Theta \mid Z)
 =
 \prod_{j<k}
 \mathcal{N}\left(
-\theta_{jk} \,\middle|\, \alpha - \|z_j - z_k\|_2^2,\; \sigma_\theta^2
+\theta_{jk} \mid \alpha - \|z_j - z_k\|_2^2,
+\; \sigma_\theta^2
 \right)
 ```
 
