@@ -1,4 +1,3 @@
-import numpy as np
 from feature_interaction_simu import simulate_data
 import torch
 import torch.nn as nn
@@ -6,19 +5,6 @@ import torch.optim as optim
 from torch.distributions import Normal
 from torch import normal
 
-
-def build_interaction_features(X):
-    n, p = X.shape
-    cols = []
-    pair_idx = []
-
-    for j in range(p):
-        for k in range(j + 1, p):
-            cols.append(X[:, j] * X[:, k])
-            pair_idx.append((j, k))
-
-    X_inter = np.column_stack(cols)
-    return X_inter, pair_idx
 
 class FeatureInteractionModel(nn.Module):
     def __init__(self, p, d,):
