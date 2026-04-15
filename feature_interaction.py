@@ -1,13 +1,11 @@
-from feature_interaction_simu import simulate_data
 import torch
 import torch.nn as nn
-import torch.optim as optim
 from torch.distributions import Normal
-from torch import normal
+import numpy as np
 
 
 class FeatureInteractionModel(nn.Module):
-    def __init__(self, p, d,):
+    def __init__(self, p, d,sigma_y=None, sigma_theta=None, sigma_z=None):
         """
         p: dimension of X
         d: dimension of latent space
@@ -16,6 +14,9 @@ class FeatureInteractionModel(nn.Module):
 
         self.p = p
         self.d = d
+        self.sigma_y = sigma_y
+        self.sigma_theta = sigma_theta
+        self.sigma_z = sigma_z
         # regression parameters
         self.beta0 = nn.Parameter(torch.zeros(1))
         self.beta = nn.Parameter(torch.zeros(p))
@@ -28,11 +29,21 @@ class FeatureInteractionModel(nn.Module):
         
         # log variance parameters
         # sigma_y^2 = exp(log_sigma_y^2})  use log variance so variance is always positive after exp()
-        self.log_sigma_y2 = nn.Parameter(torch.zeros(1))
-        self.log_sigma_theta2 = nn.Parameter(torch.zeros(1))
-        self.log_sigma_z2 = nn.Parameter(torch.zeros(1))
-        # self.log_sigma_x2 = nn.Parameter(torch.zeros(1)) 
-
+        # self.log_sigma_y2 = nn.Parameter(torch.zeros(1))
+        # self.log_sigma_theta2 = nn.Parameter(torch.zeros(1))
+        # self.log_sigma_z2 = nn.Parameter(torch.zeros(1))
+        if sigma_y is None:
+            self.log_sigma_y2 = nn.Parameter(torch.zeros(1))
+        else:
+            self.register_buffer("log_sigma_y2",torch.tensor([np.log(sigma_y**2)], dtype=torch.float32))
+        if sigma_theta is None:
+            self.log_sigma_theta2 = nn.Parameter(torch.zeros(1))
+        else:
+            self.register_buffer("log_sigma_theta2",torch.tensor([np.log(sigma_theta**2)], dtype=torch.float32))
+        if sigma_z is None:
+            self.log_sigma_z2 = nn.Parameter(torch.zeros(1))
+        else:
+            self.register_buffer("log_sigma_z2",torch.tensor([np.log(sigma_z**2)], dtype=torch.float32))
             
     def forward(self, X):
         """
@@ -116,8 +127,8 @@ class FeatureInteractionModel(nn.Module):
             total_loss = self.loss(X, y)
             total_loss.backward()
             optimizer.step()
-            if epoch % 100 == 0:
-                print(f"Epoch {epoch}: loss = {total_loss.item():.6f}")
+            # if epoch % 100 == 0:
+            #     print(f"Epoch {epoch}: loss = {total_loss.item():.6f}")
         return
 
     

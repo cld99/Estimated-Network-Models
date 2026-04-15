@@ -1,5 +1,3 @@
-from feature_interaction import FeatureInteractionModel
-from scipy.io import arff
 import pandas as pd
 import torch
 from sklearn.datasets import fetch_openml
@@ -7,6 +5,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import mean_squared_error, r2_score
+import plotly.express as px
 
 # %%
 seed = 42
@@ -36,32 +35,63 @@ y_test = torch.tensor(y_test.to_numpy(), dtype=torch.float32)
 # %%
 n,p = X_train_std.shape
 d = 2
-model = FeatureInteractionModel(p=p, d=d)
-model.fit(X_train_std, y_train, epochs=3000)
-model.eval()
+epochs = 3000
+d_list = [1, 2, 3, 4, 5, 6]
+results = []
+
+for d in d_list:
+    print(f"\nRunning d={d}")
+    model = FeatureInteractionModel(p=p, d=d)
+    model.fit(X_train_std, y_train, epochs=epochs)
+    model.eval()
+
+    with torch.no_grad():
+        y_pred = model.predict(X_test_std).squeeze()
+
+    y_pred = y_pred.detach().cpu().numpy()
+
+    if torch.is_tensor(y_test):
+        y_test = y_test.detach().cpu().numpy()
+    else:
+        y_test = y_test
+
+    mse = mean_squared_error(y_test, y_pred)
+    rmse = np.sqrt(mse)
+    r2 = r2_score(y_test, y_pred)
+
+    results.append({
+        "d": d,
+        "MSE": mse,
+        "RMSE": rmse,
+        "R2": r2
+    })
+
+# turn into dataframe
+df_results = pd.DataFrame(results)
+
+print(df_results)
+
 
 
 # %%
-model.eval()
-with torch.no_grad():
-    y_pred = model.predict(X_test_std).squeeze()
+dataset_name = dataset.details["name"]
+dataset_id = dataset.details["id"]
 
-y_pred = y_pred.detach().cpu().numpy()
-
-if torch.is_tensor(y_test):
-    y_test_np = y_test.detach().cpu().numpy()
-else:
-    y_test_np = y_test
-
-mse = mean_squared_error(y_test_np, y_pred)
-rmse = np.sqrt(mse)
-r2 = r2_score(y_test_np, y_pred)
+title_text = (
+    f"Effect of latent dimension d on model performance"
+    f"<br><sup>Dataset: {dataset_name} | ID: {dataset_id} | n={n}, p={p} | epochs={epochs}</sup>"
+)
 
 
-print("Dataset name:", dataset.details["name"])
-print("Dataset id:", dataset.details["id"])
-print("MSE:", mse)
-print("RMSE:", rmse)
-print("R2:", r2)
+# plot MSE
+fig_mse = px.line(
+    df_results,
+    x="d",
+    y="MSE",
+    markers=True,
+    title=title_text,
+    labels={"d": "Latent dimension d", "MSE": "MSE"}
+)
+fig_mse.show()
 
 
