@@ -6,6 +6,7 @@ torch.manual_seed(42)
 # Set datatype to float64 to reduce errors due to precision
 torch.set_default_dtype(torch.float64)
 
+# Print leading and trailing eigenvalues of given matrix
 def print_evals(matrix):
     evals = torch.linalg.eigvalsh(matrix)
     print(f"{evals[0]}, {evals[-1]}")
@@ -16,7 +17,7 @@ class CovarianceModel():
         p: dimension of X
         d: dimension of latent space
         df: degrees of freedom in the Inverse-Wishart distribution
-        sigma_Z: standard deviation of latent positions z
+        sigma_Z: variance of latent positions z
         diag_shift: diagonal term added to ensure positive semidefiniteness
         """
         self.p = p
@@ -87,12 +88,25 @@ class CovarianceModel():
     # Compute loss as negative log likelihood of observed data given model parameters
     def loss(self, X):
         return -self._Z_llk() - self._theta_llk() - self._X_llk(X)
+    
+    # Optimize parameters based on provided optimizer
+    def optimize(self, data, optim, steps):
+        for _ in range(steps):
+            # Zero gradients
+            optim.zero_grad()
+            # Compute loss
+            loss = self.loss(data)
+            # Backpropagate to perform gradient update
+            loss.backward()
+            optim.step()
 
-model = CovarianceModel(500, 100, 1000, 1, 1e-4)
+
+
+model = CovarianceModel(500, 100, 1000, 1)
 # print("Initial Covariance:")
 # print(model.get_cov())
 
-target_model = CovarianceModel(500, 100, 1000, 1, 1e-4)
+target_model = CovarianceModel(500, 100, 1000, 1)
 # print("Target Covariance:")
 # print(target_model.get_cov())
 
