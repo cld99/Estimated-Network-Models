@@ -65,7 +65,7 @@ l(X|\Theta) = \sum_{i=1}^p\ln((2\pi)^{-p/2}\det(\Theta\Theta^T)^{-1/2}\exp(\frac
 - **Real Data:** For real data, we do not known the true covariance values, so we instead evaluate the log-likelihood of a held out set of data on the fitted covariance model:
 
 ```math
-l(X_{\text{test}}|\Theta) = \sum_{x_i \in X_{\text{test}}}\ln((2\pi)^{-p/2}\det(\Theta\Theta^T)^{-1/2}\exp(\frac{-1}{2}x_i^T(\Theta\Theta^T)^{-1}x_i))$$
+l(X_{\text{test}}|\Theta) = \sum_{x_i \in X_{\text{test}}}\ln((2\pi)^{-p/2}\det(\Theta\Theta^T)^{-1/2}\exp(\frac{-1}{2}x_i^T(\Theta\Theta^T)^{-1}x_i))
 ```
 
 ## 2. Feature Interaction Networks

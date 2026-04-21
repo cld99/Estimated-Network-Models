@@ -1,3 +1,4 @@
+import math
 import torch
 
 # Set random seed
@@ -10,6 +11,45 @@ torch.set_default_dtype(torch.float64)
 def print_evals(matrix):
     evals = torch.linalg.eigvalsh(matrix)
     print(f"{evals[0]}, {evals[-1]}")
+
+# Compute appropriate degrees of freedom given desired entry-wise variance and dimension p
+def calc_df(var_theta, Psi, p):
+    def calc_sse(df):
+        # Create vector of computed variances for covariance matrix entries
+        actual_vars = torch.zeros(p * (p + 1) // 2)
+        # Compute variances for each entry
+        count = 0
+        for i in range(p):
+            for j in range(i, p):
+                actual_vars[count] = (df - p + 1) * Psi[i,j] + (df - p - 1) * Psi[i,i] * Psi[j,j]
+                count += 1
+        # Divide variances by common scaling factor
+        actual_vars = actual_vars / (df - p) / (df - p - 1) ** 2 / (df - p - 3)
+        return ((actual_vars - var_theta) ** 2).sum()
+    
+    df_low = p + 4
+    df_high = p * 100
+    r = (math.sqrt(5) - 1) / 2
+    a = int(df_high - r * (df_high - df_low))
+    b = int(df_low + r * (df_high - df_low))
+    sse_a = calc_sse(a)
+    sse_b = calc_sse(b)
+
+    while a != b:
+        if sse_a < sse_b:
+            df_high = b
+            b = a
+            sse_b = sse_a
+            a = int(df_high - r * (df_high - df_low))
+            sse_a = calc_sse(a)
+        else:
+            df_low = a
+            a = b
+            sse_a = sse_b
+            b = int(df_low + r * (df_high - df_low))
+            sse_b = calc_sse(b)
+    
+    return a
 
 class CovarianceModel():
     def __init__(self, p, d, df, sigma_Z, diag_shift=1e-4):
@@ -90,7 +130,8 @@ class CovarianceModel():
         return -self._Z_llk() - self._theta_llk() - self._X_llk(X)
     
     # Optimize parameters based on provided optimizer
-    def optimize(self, data, optim, steps):
+    def optimize(self, data, steps):
+        optim = torch.optim.AdamW(self.get_model_params(), lr=0.001, eps=1e-6, betas=(0.9, 0.99))
         for _ in range(steps):
             # Zero gradients
             optim.zero_grad()
@@ -99,43 +140,3 @@ class CovarianceModel():
             # Backpropagate to perform gradient update
             loss.backward()
             optim.step()
-
-
-
-model = CovarianceModel(500, 100, 1000, 1)
-# print("Initial Covariance:")
-# print(model.get_cov())
-
-target_model = CovarianceModel(500, 100, 1000, 1)
-# print("Target Covariance:")
-# print(target_model.get_cov())
-
-data = target_model.gen_samples(10)
-
-# print("Sample covariance:")
-# print(torch.cov(data.T))
-
-optim = torch.optim.AdamW(model.get_model_params(), lr=0.001, eps=1e-6, betas=(0.9, 0.99))
-
-loss = model.loss(data)
-
-for i in range(10000):
-    optim.zero_grad()
-
-    loss = model.loss(data)
-
-    loss.backward()
-    optim.step()
-
-    if i % 1000 == 0:
-        print("Fitted model:")
-        print(torch.linalg.matrix_norm(target_model.get_cov() - model.get_cov()) ** 2)
-
-# print("Fitted Covariance:")
-# print(model.get_cov())
-
-print("Sample covariance:")
-print(torch.linalg.matrix_norm(target_model.get_cov() - torch.cov(data.T)) ** 2)
-
-print("Fitted model:")
-print(torch.linalg.matrix_norm(target_model.get_cov() - model.get_cov()) ** 2)
