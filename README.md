@@ -23,7 +23,7 @@ z_j &\rightarrow \theta_{jk} \rightarrow x
 $d$-dimensional latent positions are sampled according to a multivariate normal distribution:
 
 ```math
-z_i \sim \mathcal{N}(0, I\sigma_x), \text{ } i \in \{0, 1, ..., p\}
+z_i \sim \mathcal{N}(0, I\sigma_z^2), \text{ } i \in \{0, 1, ..., p\}
 ```
 
 The covariance matrix is sampled according to an inverse-Wishart distribution with scale matrix equal to $ZZ^T$ and $\nu$ degrees of freedom:
@@ -43,7 +43,7 @@ Parameter estimation is performed by maximizing the log-likelihood of the data a
 ```
 
 ```math
-l(Z) = \sum_{i=1}^p\ln((2\pi)^{-k/2}\det(I\sigma_z)^{-1/2}\exp(\frac{-1}{2}z_i^T(I\sigma_z)^{-1}z_i))
+l(Z) = \sum_{i=1}^p\ln((2\pi)^{-k/2}\det(I\sigma_z^2)^{-1/2}\exp(\frac{-1}{2}z_i^T(I\sigma_z^2)^{-1}z_i))
 ```
 
 ```math

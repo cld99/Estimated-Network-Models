@@ -13,7 +13,7 @@ def print_evals(matrix):
     print(f"{evals[0]}, {evals[-1]}")
 
 # Compute appropriate degrees of freedom given desired entry-wise variance and dimension p
-def calc_df(var_theta, Psi, p):
+def calc_df(target_var, Psi, p):
     def calc_sse(df):
         # Create vector of computed variances for covariance matrix entries
         actual_vars = torch.zeros(p * (p + 1) // 2)
@@ -25,7 +25,7 @@ def calc_df(var_theta, Psi, p):
                 count += 1
         # Divide variances by common scaling factor
         actual_vars = actual_vars / (df - p) / (df - p - 1) ** 2 / (df - p - 3)
-        return ((actual_vars - var_theta) ** 2).sum()
+        return ((actual_vars - target_var) ** 2).sum()
     
     df_low = p + 4
     df_high = p * 100
@@ -52,23 +52,29 @@ def calc_df(var_theta, Psi, p):
     return a
 
 class CovarianceModel():
-    def __init__(self, p, d, df, sigma_Z, diag_shift=1e-4):
+    def __init__(self, p, d, df=None, sigma_theta=None, sigma_Z=1.0, diag_shift=1e-4):
         """
         p: dimension of X
         d: dimension of latent space
-        df: degrees of freedom in the Inverse-Wishart distribution
+        df: degrees of freedom in the Inverse-Wishart distribution (must specify one of df or sigma_theta)
+        sigma_theta: desired variance of Inverse-Wishart distribution (must specify one of df or sigma_theta)
         sigma_Z: variance of latent positions z
         diag_shift: diagonal term added to ensure positive semidefiniteness
         """
         self.p = p
         self.d = d
-        if df < d:
-            raise ValueError("Invalid degrees of freedom provided (must be at least p)")
-        self.df = df
         self.sigma_Z = sigma_Z
         self.diag_shift = diag_shift
 
         self.Z = torch.tensor(torch.randn((p, d)) * sigma_Z, requires_grad=True)
+
+        if df != None:
+            if df < d:
+                raise ValueError("Invalid degrees of freedom provided (must be at least p)")
+            self.df = df
+        else:
+            self.df = calc_df(sigma_theta^2, (self.Z @ self.Z.T).detach() + torch.eye(self.p) * self.diag_shift, self.p)
+        
         self.theta = torch.tensor(self._gen_theta_entries(), requires_grad=True)
     
     # Generate initialization of theta based on latent positions and inverse-Wishart distribution
@@ -102,7 +108,7 @@ class CovarianceModel():
     
     # Log likelihood of latent positions given variance
     def _Z_llk(self):
-        dist = torch.distributions.MultivariateNormal(torch.zeros(self.d), covariance_matrix=torch.eye(self.d) * self.sigma_Z)
+        dist = torch.distributions.MultivariateNormal(torch.zeros(self.d), covariance_matrix=torch.eye(self.d) * self.sigma_Z^2)
         return torch.sum(dist.log_prob(self.Z), dim=None)
     
     # Log likelihood of covariance matrix entries given latent positions and degrees of freedom
