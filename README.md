@@ -11,6 +11,39 @@ Otherwise, we only need **parameter prediction**.
 
 ## 1. Correlation Networks
 
+### 1.1 Simulated Data Generation
+```math
+\begin{aligned}
+&\qquad z_k \\
+&\qquad \downarrow \\
+z_j &\rightarrow \theta_{jk} \rightarrow x
+\end{aligned}
+```
+
+$d$-dimensional latent positions are sampled according to a multivariate normal distribution:
+$$z_i \sim \mathcal{N}(0, I\sigma_x), \text{ } i \in \{0, 1, ..., p\}$$
+
+The covariance matrix is sampled according to an inverse-Wishart distribution with scale matrix equal to $ZZ^T$ and $\nu$ degrees of freedom:
+$$\text{Cov} \sim \mathcal{W}^{-1}(ZZ^T, \nu)$$
+
+The covariance matrix, which is guaranteed to be symmetric positive definite by the properties of the inverse-Wishart distribution, is parameterized by lower triangular matrix $\Theta$ such that $\text{Cov} = \Theta\Theta^T$.
+
+### 1.2 Parameter Estimation
+
+Parameter estimation is performed by maximizing the log-likelihood of the data and model parameters given the generative process described in section 1.1. Thus, the following loss function is minimized with respect to latent positions $Z$ and covariance parameters $\Theta$:
+$$\text{Loss} = -l(Z) - l(\Theta|Z) - l(X|\Theta)$$
+$$l(Z) = \sum_{i=1}^p\ln((2\pi)^{-k/2}\det(I\sigma_z)^{-1/2}\exp(\frac{-1}{2}z_i^T(I\sigma_z)^{-1}z_i))$$
+$$l(\Theta|Z) = \ln(\frac{|ZZ^T|^{\nu/2}}{2^{\nu p/2}\Gamma_p(\frac{\nu}{2})}|\Theta\Theta^T|^{-(\nu+p+1)/2}e^{-\frac{1}{2}\tr(ZZ^T(\Theta\Theta^T)^{-1})})$$
+$$l(X|\Theta) = \sum_{i=1}^p\ln((2\pi)^{-p/2}\det(\Theta\Theta^T)^{-1/2}\exp(\frac{-1}{2}x_i^T(\Theta\Theta^T)^{-1}x_i))$$
+
+### 1.3 Evaluation
+
+- **Simulated Data:** For simulated data, we can directly compare the estimated covariance values to the true values using the Frobenius norm of the difference between the covariance matrices:
+$$\|\Theta - \hat{\Theta}\|_F^2$$
+
+- **Real Data:** For real data, we do not known the true covariance values, so we instead evaluate the log-likelihood of a held out set of data on the fitted covariance model:
+$$l(X_{\text{test}}|\hat{\Theta}) = \sum_{x_i \in X_{\text{test}}}\ln((2\pi)^{-p/2}\det(\hat{\Theta}\hat{\Theta}^T)^{-1/2}\exp(\frac{-1}{2}x_i^T(\hat{\Theta}\hat{\Theta}^T)^{-1}x_i))$$
+
 ## 2. Feature Interaction Networks
 
 ### 2.1 Simulation data generation
@@ -24,8 +57,6 @@ z_j &\rightarrow \theta_{jk} \rightarrow y \leftarrow x \\
 &\qquad\qquad\beta
 \end{aligned}
 ```
-
-
 
 ```math
 x_i \sim \mathcal{N}(0, \Sigma_x)
