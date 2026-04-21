@@ -84,15 +84,16 @@ y_i \sim \mathcal{N}(
 ### 2.2 Parameter prediction
 
 The model likelihood is
-
 ```math
-p(y, x, \Theta, Z) = p(y \mid x, \Theta)\, p(x)\, p(\Theta \mid Z)\, p(Z)
+p(y, \beta, \Theta, Z \mid x)
+=
+p(y \mid x, \beta, \Theta)\, p(\Theta \mid Z)\, p(\beta)\, p(Z)
 ```
 
 with
 
 ```math
-p(y \mid x, \Theta)
+p(y \mid x, \Theta, \beta)
 =
 \prod_{i=1}^n
 \mathcal{N}(
@@ -101,12 +102,6 @@ y_i \mid \beta_0 + \beta^\top x_i + \sum_{j \lt k}\theta_{jk}x_{ij}x_{ik},
 )
 ```
 
-```math
-p(x)
-=
-\prod_{i=1}^n
-\mathcal{N}(x_i \mid 0, \Sigma_x)
-```
 
 ```math
 p(\Theta \mid Z)
@@ -116,6 +111,13 @@ p(\Theta \mid Z)
 \theta_{jk} \mid \alpha - \|z_j - z_k\|_2^2,
 \; \sigma_\theta^2
 )
+```
+
+```math
+p(\beta)
+=
+\prod_{j=1}^p
+\mathcal{N}(\beta_j \mid 0,\sigma_\beta^2)
 ```
 
 ```math
@@ -131,13 +133,15 @@ The full negative log-likelihood is
 \mathrm{NLL} = -\log p(y, x, \Theta, Z)
 
 =
--\log p(y \mid x, \Theta)
+-\log p(y, \beta, \Theta, Z \mid x)
 -\log p(x)
 -\log p(\Theta \mid Z)
 -\log p(Z)
 ```
 
-Since \(p(x)\) does not depend on the trainable parameters, it is treated as a constant during optimization.
+
+In our current implementation, we do not explicitly include the priors $p(\beta)$ and $p(z)$ in the optimization objective. This is because priors have large variances with ero mean priors 
+
 
 Therefore, the training loss is
 
@@ -146,10 +150,9 @@ Therefore, the training loss is
 =
 -\log p(y \mid x, \Theta)
 -\log p(\Theta \mid Z)
--\log p(Z)
 ```
 
-### 2.3 Assessment
+### 2.3 Evaluation
 
 - **Simulation data:** compare the estimated interaction matrix with the true interaction matrix
 
