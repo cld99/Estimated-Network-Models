@@ -81,10 +81,34 @@ z_j &\rightarrow \theta_{jk} \rightarrow y \leftarrow x \\
 &\qquad\qquad\beta
 \end{aligned}
 ```
+$$
+X \in \mathbb{R}^{n \times p}
+$$
+
+$$
+y \in \mathbb{R}^{n}
+$$
+
+$$
+Z \in \mathbb{R}^{p \times d}
+$$
+
+$$
+\Theta \in \mathbb{R}^{p \times p}
+$$
+
+$$
+\beta \in \mathbb{R}^{p}
+$$
+
+$$
+\tilde{\beta} \in \mathbb{R}^{p+1}
+$$
 
 ```math
 x_i \sim \mathcal{N}(0, \Sigma_x)
 ```
+
 
 ```math
 \Sigma_x = \sigma_x^2 \left(\rho^{|j-k|}\right)_{j,k=1,\dots,p}
