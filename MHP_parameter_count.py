@@ -44,7 +44,7 @@ for i in range(2,11):
     """optimizing theta"""
     theta = np.array(theta).flatten() # flatten theta_tilde for optimize.fmin_l_bfgs_b
     args = (p, d, Z, alph, sigma_theta, theta_tilde, t, mu, beta, time) # gathers variables
-    args_for_adm4 = (1, 1, *args)
+    args_for_adm4 = (0.02, 0.6, *args)
 
     # for comparison
     # ll = negative_complete_data_log_likelihood_of_theta(theta, *args)
