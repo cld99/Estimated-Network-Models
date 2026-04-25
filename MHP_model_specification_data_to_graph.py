@@ -3,10 +3,15 @@ import plotly.express as px
 
 df = pd.read_csv('results/MHP_model_misspecification.csv')
 
-df = df.rename({"frobenius error": "Frobenius error", "rmse error": "RMSE error"}, axis=1)
+df = df.rename({"frobenius error":"Model Frobenius error",
+                "rmse error": "Model RMSE",
+                "frobenius adm4":"ADM4 Frobenius error",
+                "rmse adm4": "ADM4 RMSE"
+                },
+                axis=1)
 
 fig = px.line(
-    df, x='misspecification', y=['Frobenius error', 'RMSE error'], title="Error vs misspecification"
+    df, x='misspecification', y=['Model Frobenius error', 'Model RMSE', 'ADM4 Frobenius error', "ADM4 RMSE"], title="Error vs misspecification"
 )
 
 fig.update_xaxes(

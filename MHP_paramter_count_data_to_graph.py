@@ -3,10 +3,15 @@ import plotly.express as px
 
 df = pd.read_csv('results/MHP_parameter_count.csv')
 
-df = df.rename({"frobenius error": "Frobenius error", "rmse error": "RMSE error"}, axis=1)
+df = df.rename({"frobenius error":"Model Frobenius error",
+                "rmse error": "Model RMSE",
+                "frobenius adm4":"ADM4 Frobenius error",
+                "rmse adm4": "ADM4 RMSE"
+                },
+                axis=1)
 
 fig = px.line(
-    df, x='parameter count', y=['Frobenius error', 'RMSE error'], title="Error vs parameter count"
+    df, x='parameter count', y=['Model Frobenius error', 'Model RMSE', 'ADM4 Frobenius error', "ADM4 RMSE"], title="Error vs parameter count"
 )
 
 fig.update_xaxes(

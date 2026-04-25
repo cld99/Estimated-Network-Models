@@ -4,12 +4,20 @@ import numpy as np
 # negative log likelihood of the adm4 model
 def adm4_nll(alpha, *args):
     ll = negative_log_likelihood(alpha, *args[2:])
+    num_params = args[6]
 
     lam1, lam2 = args[:2]
     alpha = alpha.reshape((num_params,num_params)) # reshape alpha
     ll -= lam1 * np.linalg.norm(alpha, ord='nuc')
     ll -= lam2 * np.linalg.norm(alpha, ord=1)
     return ll
+
+def negative_complete_data_log_likelihood_for_adm4(theta, *args):
+    lam1, lam2, p, d, z, alph, sigma_theta, theta_tilde, timestamps, mu, beta, time = args # same args as negative_complete_data_log_likelihood_of_theta, but with lam1 and lam2
+    theta = theta.reshape(p,p) # theta requres reshaping
+
+    args = (lam1, lam2, timestamps, mu, beta, time, p) # for hawkes
+    return -(-adm4_nll(theta_tilde, *args) + log_p_theta_given_z(sigma_theta, theta, alph, z, p))
 
 if __name__ == "__main__":
     """generate hawkes data"""
