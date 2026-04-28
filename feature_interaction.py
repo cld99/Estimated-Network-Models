@@ -5,7 +5,8 @@ import numpy as np
 
 
 class FeatureInteractionModel(nn.Module):
-    def __init__(self, p, d, sigma_y=None, sigma_theta=None, sigma_z=None, use_latent_theta=True):
+    def __init__(self, p, d, sigma_y=None, sigma_theta=None, sigma_z=None, use_latent_theta=True,
+                 use_sbm=False, group_labels=None, K=None):
         """
         p: dimension of X
         d: dimension of latent space
@@ -21,6 +22,18 @@ class FeatureInteractionModel(nn.Module):
         # regression parameters
         self.beta0 = nn.Parameter(torch.zeros(1))
         self.beta = nn.Parameter(torch.zeros(p))
+        
+        # Stochastic Block Model
+        self.use_sbm = use_sbm
+        if group_labels is not None:
+            self.group_labels = torch.tensor(group_labels, dtype=torch.long)
+        else:
+            self.group_labels = None
+        self.K = K # number of blocks
+        if self.use_sbm:
+            self.B = nn.Parameter(torch.zeros(K, K)) # block2block matrix
+            self.mu = nn.Parameter(torch.randn(K, d) * 0.1) # same block, same mu of latent dist z
+        
         if sigma_y is None:
             self.log_sigma_y2 = nn.Parameter(torch.zeros(1))
         else:
@@ -55,6 +68,8 @@ class FeatureInteractionModel(nn.Module):
         """
         Compute prior mean vector for theta:
             mean_jk = alpha - ||z_j - z_k||^2
+        if use SBM:
+            theta_jk ~ N(alpha + B[cj, ck] - ||z_j - z_k||^2, sigma_theta^2)
         Returns:
             tensor of shape (num_pairs,)
         """
@@ -62,7 +77,14 @@ class FeatureInteractionModel(nn.Module):
         for j in range(self.p):
             for k in range(j + 1, self.p):
                 dist2 = torch.sum((self.Z[j] - self.Z[k]) ** 2)
-                theta_mean_list.append(self.alpha - dist2)
+                mean_jk = self.alpha - dist2
+                
+                if self.use_sbm:
+                    cj = self.group_labels[j]
+                    ck = self.group_labels[k]
+                    mean_jk = mean_jk + self.B[cj, ck]
+                    
+                theta_mean_list.append(mean_jk)
         return torch.stack(theta_mean_list).reshape(-1)     
                  
            
@@ -110,16 +132,21 @@ class FeatureInteractionModel(nn.Module):
     
     def _nll_z(self):
         """
-        -log p(Z)
-        Assume each entry Z_jl ~ N(0, sigma_z^2)
+        If use_sbm=False:
+            z_j ~ N(0, sigma_z^2 I)
+
+        If use_sbm=True:
+            z_j | c_j ~ N(mu[c_j], sigma_z^2 I)
         """
-        loss_z = 0.0
         sigma_z = torch.exp(0.5 * self.log_sigma_z2)
-        for j in range(self.p):
-            for l in range(self.d):
-                dist = Normal(loc=0, scale=sigma_z)
-                loss_z -= dist.log_prob(self.Z[j,l])
-        
+
+        if self.use_sbm:
+            z_mean = self.mu[self.group_labels]   # shape: (p, d)
+        else:
+            z_mean = torch.zeros_like(self.Z)
+
+        dist = Normal(loc=z_mean, scale=sigma_z)
+        loss_z = -dist.log_prob(self.Z).sum()
         return loss_z
     
     def loss(self, X, y):
@@ -140,7 +167,10 @@ class FeatureInteractionModel(nn.Module):
         if self.use_latent_theta: #Theta constrained by latent-distance prior
             loss_theta_given_z = self._nll_theta_given_z()
             # total_loss = loss_y_given_x_theta + loss_theta_given_z + self._nll_z()
-            total_loss = loss_y_given_x_theta + loss_theta_given_z 
+            if self.use_sbm:
+                total_loss = loss_y_given_x_theta + loss_theta_given_z + self._nll_z()
+            else:
+                total_loss = loss_y_given_x_theta + loss_theta_given_z 
         else:
             total_loss = loss_y_given_x_theta
         
