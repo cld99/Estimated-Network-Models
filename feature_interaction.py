@@ -26,8 +26,10 @@ class FeatureInteractionModel(nn.Module):
         else:
             self.register_buffer("log_sigma_y2",torch.tensor([np.log(sigma_y**2)], dtype=torch.float32))
         if sigma_z is None:
-            self.log_sigma_z2 = nn.Parameter(torch.zeros(1))
-            self.Z = nn.Parameter(torch.randn(p, d))
+            # self.log_sigma_z2 = nn.Parameter(torch.zeros(1))
+            # self.Z = nn.Parameter(torch.randn(p, d))
+            self.log_sigma_z2 = nn.Parameter(torch.tensor([np.log(0.1 ** 2)], dtype=torch.float32))
+            self.Z = nn.Parameter(0.1 * torch.randn(p, d))
         else:
             self.register_buffer("log_sigma_z2",torch.tensor([np.log(sigma_z**2)], dtype=torch.float32))
             self.Z = nn.Parameter(sigma_z * torch.randn(p, d))
