@@ -5,6 +5,25 @@
 import numpy as np
 from scipy import optimize
 
+# if any row of the alpha matrix is >= 1 then model with explode
+def is_valid_alpha_matrix(alpha):
+    for row in alpha:
+        if sum(row) >= 1:
+            return False
+
+        for i in row:
+            if i < 0:
+                return False
+    return True
+
+def generate_alpha_matrix(dim):
+    alpha = np.random.uniform(0, 0.4/dim, size=(dim, dim))
+    while(not is_valid_alpha_matrix(alpha)):
+        alpha = np.random.uniform(0, 0.4/dim, size=(dim, dim))
+        alpha = logistic(alpha)
+    return alpha
+
+
 # function for multivariate hawkes process
 def simulation_by_cluster_representation(mu, alpha, beta, time):
     # code taken from https://arxiv.org/pdf/2502.18979 Algorithm 1
@@ -207,8 +226,8 @@ def negative_complete_data_log_likelihood_of_theta(theta, *args):
 
 # rmse
 def rmse(actual, estimated):
-    if len(actual) != len(estimated):
-        actual = np.array(actual.flatten())
+    actual = np.array(actual.flatten())
+    estimated = np.array(estimated.flatten())
 
     err = 0
     for i in range(len(actual)):
@@ -222,8 +241,10 @@ if __name__ == "__main__":
     # model parameters
     np.random.seed(0)
     mu = [0.4, 0.4] # background intensity
-    alpha = [[0.3, 0.4],
-            [0.35, 0.45]] # mutual excitation matrix; alpha_12 means that 1 is excited by 2
+    # alpha = [[0.3, 0.4],
+    #         [0.35, 0.45]] # mutual excitation matrix; alpha_12 means that 1 is excited by 2
+    alpha = generate_alpha_matrix(len(mu))
+    print(alpha)
     beta = 1 # decay; assume beta is the same for all variables
     time = 400 # time
     num_params = len(alpha) # used for flattening/reshaping alpha matrix
@@ -235,7 +256,7 @@ if __name__ == "__main__":
     p = len(mu) # number of latent nodes to generate
     d = 2 # dimension of latent space
     sigma_z = 1 # variance of latent space generation
-    alph = 1 # constant for theta generation; we call this alpha but i don't want to confuse it with the hawkes alpha
+    alph = -5 # constant for theta generation; we call this alpha but i don't want to confuse it with the hawkes alpha
     sigma_theta = 0.01 # variance for theta generation
 
     Z = generate_latent_Z(p, d, sigma_z)
