@@ -8,15 +8,15 @@ import pandas as pd
 # model parameters
 np.random.seed(0)
 mu = [0.1 for _ in range(2)] # background intensity
-alpha = generate_alpha_matrix(len(mu))
+# alpha = generate_alpha_matrix(len(mu))
 beta = 1 # decay; assume beta is the same for all variables
 time = 400 # time
-num_params = len(alpha) # used for flattening/reshaping alpha matrix
+num_params = len(mu) # used for flattening/reshaping alpha matrix
 
-timestamps, _ = simulation_by_cluster_representation(mu, alpha, beta, time) # hawkes
+# timestamps, _ = simulation_by_cluster_representation(mu, alpha, beta, time) # hawkes
 
 results = []
-for i in range(1,10): # range(1,21)
+for i in range(1,9): # range(1,21)
     """generate latent variables and theta"""
     np.random.seed(0)
     p = len(mu) # number of latent nodes to generate
@@ -75,11 +75,11 @@ for i in range(1,10): # range(1,21)
     estimated_alpha = logistic(estimated_theta) # feed estimated_theta through logistic again for fairer comparison to adm4
     estimated_adm4 = adm4_optimize[0].reshape((p,p))
 
-    err_fro = np.linalg.norm(alpha-estimated_alpha, ord='fro') # frobenius norm
-    err_rmse = rmse(np.array(alpha), estimated_alpha)
+    err_fro = np.linalg.norm(theta_tilde-estimated_alpha, ord='fro') # frobenius norm
+    err_rmse = rmse(np.array(theta_tilde), estimated_alpha)
 
-    err_fro_adm4 = np.linalg.norm(alpha-estimated_adm4, ord='fro') # frobenius norm
-    err_rmse_adm4 = rmse(np.array(alpha), estimated_adm4)
+    err_fro_adm4 = np.linalg.norm(theta_tilde-estimated_adm4, ord='fro') # frobenius norm
+    err_rmse_adm4 = rmse(np.array(theta_tilde), estimated_adm4)
     # print("\nRMSE:")
     # print(err)
 

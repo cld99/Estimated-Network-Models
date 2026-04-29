@@ -22,8 +22,8 @@ def adm4_nll(alpha, *args):
 if __name__ == "__main__":
     """generate hawkes data"""
     # model parameters
-    # np.random.seed(0)
-    mu = [0.1, 0.1] # background intensity
+    np.random.seed(0)
+    mu = [0.1 for _ in range(2)] # background intensity
     alpha = generate_alpha_matrix(len(mu))
     beta = 1 # decay; assume beta is the same for all variables
     time = 400 # time

@@ -5,27 +5,27 @@ from MHP_ADM4_trials import *
 import pandas as pd
 
 results = []
-for i in range(2,11): # range(2,11)
+for i in range(2,9): # range(2,11)
     """generate hawkes data"""
     # model parameters
     np.random.seed(0)
 
     """number of parameters is changed every iteration"""
-    mu = [0.1 for _ in range(i)] # background intensity
-    alpha = generate_alpha_matrix(len(mu))
+    mu = [0.2/i for _ in range(i)] # background intensity
+    # alpha = generate_alpha_matrix(len(mu))
     beta = 1 # decay; assume beta is the same for all variables
     time = 400 # time
-    num_params = len(alpha) # used for flattening/reshaping alpha matrix
+    num_params = len(mu) # used for flattening/reshaping alpha matrix
 
-    timestamps, _ = simulation_by_cluster_representation(mu, alpha, beta, time) # hawkes
+    # timestamps, _ = simulation_by_cluster_representation(mu, alpha, beta, time) # hawkes
 
     """generate latent variables and theta"""
     np.random.seed(0)
     p = len(mu) # number of latent nodes to generate
     d = 2 # dimension of latent space
     sigma_z = 1 # variance of latent space generation
-    alph = -5 # constant for theta generation; we call this alpha but i don't want to confuse it with the hawkes alpha
-    sigma_theta = 0.01 # variance for theta generation
+    alph = -10 # constant for theta generation; we call this alpha but i don't want to confuse it with the hawkes alpha
+    sigma_theta = 0.5 #0.01 # variance for theta generation
 
     Z = generate_latent_Z(p, d, sigma_z)
     theta = generate_theta(Z, alph, sigma_theta)
@@ -76,11 +76,11 @@ for i in range(2,11): # range(2,11)
     estimated_alpha = logistic(estimated_theta) # feed estimated_theta through logistic again for fairer comparison to adm4
     estimated_adm4 = adm4_optimize[0].reshape((p,p))
 
-    err_fro = np.linalg.norm(alpha-estimated_alpha, ord='fro') # frobenius norm
-    err_rmse = rmse(np.array(alpha), estimated_alpha)
+    err_fro = np.linalg.norm(theta_tilde-estimated_alpha, ord='fro') # frobenius norm
+    err_rmse = rmse(np.array(theta_tilde), estimated_alpha)
 
-    err_fro_adm4 = np.linalg.norm(alpha-estimated_adm4, ord='fro') # frobenius norm
-    err_rmse_adm4 = rmse(np.array(alpha), estimated_adm4)
+    err_fro_adm4 = np.linalg.norm(theta_tilde-estimated_adm4, ord='fro') # frobenius norm
+    err_rmse_adm4 = rmse(np.array(theta_tilde), estimated_adm4)
     # print("\nRMSE:")
     # print(err)
 

@@ -43,19 +43,26 @@ df['datetime'] = df.apply(lambda x: x['datetime'] - datetime.datetime(year=64, m
 df['datetime'] = df['datetime'].dt.days # convert timedelta to int
 df['AREA'] = df.apply(lambda x: int(x['AREA'][len(x['AREA'])-1:]), axis=1) # convert police area to int
 df = df[['datetime', 'AREA']] # drops unnecessary columns
-df = df.groupby(by='AREA') # group by
+max_datetime = int(df['datetime'].max())
 
-timestamps = [[] for _ in df['AREA'].max()] # instantiate array with length equal to the number of 
-for key, item in df: # for each group
-    timestamps[key-1] = np.array(df.get_group(key)['datetime']) # put each group's timestamps into arr
-    timestamps[key-1] = sorted(list(set(timestamps[key-1]))) # drops duplicates
+df_train = df.loc[df['datetime'] <= max_datetime * 0.8]
+df_train = df_train.groupby(by='AREA') # group by
+df_test = df.loc[df['datetime'] > max_datetime * 0.8]
+df_test = df_test.groupby(by='AREA')
+
+timestams_train = [[] for _ in df_train['AREA'].max()] # instantiate array with length equal to the number of 
+for key, item in df_train: # for each group
+    timestams_train[key-1] = np.array(df_train.get_group(key)['datetime']) # put each group's timestamps into arr
+    timestams_train[key-1] = sorted(list(set(timestams_train[key-1]))) # drops duplicates
+
+timestamps_test = [[] for _ in df_test['AREA'].max()] # instantiate array with length equal to the number of 
+for key, item in df_test: # for each group
+    timestamps_test[key-1] = np.array(df_test.get_group(key)['datetime']) # put each group's timestamps into arr
+    timestamps_test[key-1] = sorted(list(set(timestamps_test[key-1]))) # drops duplicates
 
 # TODO:
-# split into 80/20 train/test set (based on max timestamp)
 # generate latent variables and theta
 # do lbfgs and make prediction on theta
 # then use the predicted theta to generate data for 20% of time?
 # compare the log likelihood of 
 # negative_complete_data_log_likelihood_of_theta, negative_complete_data_log_likelihood_for_adm4
-# TODO:
-# adm4 shouldn't include the generate theta part; don't include theta given z

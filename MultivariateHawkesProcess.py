@@ -240,16 +240,16 @@ if __name__ == "__main__":
     """generate hawkes data"""
     # model parameters
     np.random.seed(0)
-    mu = [0.4, 0.4] # background intensity
+    mu = [0.1 for _ in range(2)] # background intensity
     # alpha = [[0.3, 0.4],
     #         [0.35, 0.45]] # mutual excitation matrix; alpha_12 means that 1 is excited by 2
-    alpha = generate_alpha_matrix(len(mu))
-    print(alpha)
+    # alpha = generate_alpha_matrix(len(mu))
+    # print(alpha)
     beta = 1 # decay; assume beta is the same for all variables
     time = 400 # time
-    num_params = len(alpha) # used for flattening/reshaping alpha matrix
+    num_params = len(mu) # used for flattening/reshaping alpha matrix
 
-    timestamps, _ = simulation_by_cluster_representation(mu, alpha, beta, time) # hawkes
+    # timestamps, _ = simulation_by_cluster_representation(mu, alpha, beta, time) # hawkes
 
     """generate latent variables and theta"""
     np.random.seed(0)
@@ -262,6 +262,10 @@ if __name__ == "__main__":
     Z = generate_latent_Z(p, d, sigma_z)
     theta = generate_theta(Z, alph, sigma_theta)
     theta_tilde = logistic(theta)
+
+    if not is_valid_alpha_matrix(theta_tilde):
+        print("not valid theta_tilde matrix")
+
     t, _ = simulation_by_cluster_representation(mu, theta_tilde, beta, time) # hawkes process using theta_tilde
 
     """optimizing theta"""
@@ -292,6 +296,6 @@ if __name__ == "__main__":
 
     """print errors"""
     err_fro = np.linalg.norm(theta-estimated_theta, ord='fro') # frobenius norm
-    err_rmse = rmse(alpha, opt_auto_grad[0])
+    err_rmse = rmse(np.array(theta), estimated_theta)
     print("frobenius:", err_fro)
     print("rmse err :", err_rmse)
