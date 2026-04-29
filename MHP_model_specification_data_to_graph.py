@@ -1,32 +1,18 @@
 import pandas as pd
 import plotly.express as px
+from MHP_paramter_count_data_to_graph import create_fig
 
 df = pd.read_csv('results/MHP_model_misspecification.csv')
-
-df = df.rename({"frobenius error":"Model Frobenius error",
-                "rmse error": "Model RMSE",
+df = df.rename({"frobenius error":"LSM Frobenius error",
+                "rmse error": "LSM RMSE",
                 "frobenius adm4":"ADM4 Frobenius error",
                 "rmse adm4": "ADM4 RMSE"
                 },
                 axis=1)
+model_parameters = 'p=2, mu=0.1, beta=1, time=400, d=2, σ_z=1'
 
-fig = px.line(
-    df, x='misspecification', y=['Model Frobenius error', 'Model RMSE', 'ADM4 Frobenius error', "ADM4 RMSE"], title="Error vs misspecification"
-)
+fig_rmse = create_fig(df, 'misspecification', ['LSM RMSE', "ADM4 RMSE"], "RMSE vs σ_θ", "σ_θ (model misspecification)", "RMSE",model_parameters)
+fig_rmse.write_image("results/MHP_model_misspecification_RMSE.pdf")
 
-fig.update_xaxes(
-    title_text="Model misspecification: σ_θ",
-    # tickmode="array",
-    tickvals=list(df['misspecification']),
-    # ticktext=[str(x) for x in df.columns],
-    # side="bottom"
-)
-
-fig.update_yaxes(
-    title_text="Errors",
-    # tickmode="array",
-    # tickvals=list(df['misspecification']),
-    # ticktext=[str(y) for y in df.index]
-)
-
-fig.write_image("results/MHP_model_misspecification.pdf")
+fig_frob = create_fig(df, 'misspecification', ['LSM Frobenius error', "ADM4 Frobenius error"], "Frobenius error vs σ_θ", "σ_θ (model misspecification)", "Frobenius error", model_parameters)
+fig_frob.write_image("results/MHP_model_misspecification_Frobenius.pdf")

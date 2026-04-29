@@ -24,8 +24,8 @@ for i in range(2,9): # range(2,11)
     p = len(mu) # number of latent nodes to generate
     d = 2 # dimension of latent space
     sigma_z = 1 # variance of latent space generation
-    alph = -10 # constant for theta generation; we call this alpha but i don't want to confuse it with the hawkes alpha
-    sigma_theta = 0.5 #0.01 # variance for theta generation
+    alph = -5 # constant for theta generation; we call this alpha but i don't want to confuse it with the hawkes alpha
+    sigma_theta = 1.5 #0.01 # variance for theta generation
 
     Z = generate_latent_Z(p, d, sigma_z)
     theta = generate_theta(Z, alph, sigma_theta)
