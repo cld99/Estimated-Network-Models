@@ -1,6 +1,6 @@
 import pandas as pd
 import plotly.express as px
-from MHP_paramter_count_data_to_graph import create_fig
+from MHP_parameter_count_data_to_graph import create_fig
 
 df = pd.read_csv('results/MHP_model_misspecification.csv')
 df = df.rename({"frobenius error":"LSM Frobenius error",
