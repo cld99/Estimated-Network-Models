@@ -4,90 +4,103 @@ from MultivariateHawkesProcess import *
 from MHP_ADM4_trials import *
 import pandas as pd
 
-results = []
-for i in range(2,9): # range(2,11)
-    """generate hawkes data"""
-    # model parameters
-    np.random.seed(0)
+np.random.seed(0)
 
+results = []
+for i in range(2,11): # range(2,11)
+    """hawkes parameters"""
     """number of parameters is changed every iteration"""
     mu = [0.2/i for _ in range(i)] # background intensity
     # alpha = generate_alpha_matrix(len(mu))
     beta = 1 # decay; assume beta is the same for all variables
     time = 400 # time
     num_params = len(mu) # used for flattening/reshaping alpha matrix
-
     # timestamps, _ = simulation_by_cluster_representation(mu, alpha, beta, time) # hawkes
 
-    """generate latent variables and theta"""
-    np.random.seed(0)
-    p = len(mu) # number of latent nodes to generate
-    d = 2 # dimension of latent space
-    sigma_z = 1 # variance of latent space generation
-    alph = -5 # constant for theta generation; we call this alpha but i don't want to confuse it with the hawkes alpha
-    sigma_theta = 1.5 #0.01 # variance for theta generation
+    err_fro_totals = []
+    err_rmse_totals = []
+    err_fro_adm4_totals = []
+    err_rmse_adm4_totals = []
+    for _ in range(5): # repeats and takes mean ± st dev
+        """generate latent variables and theta"""
+        p = len(mu) # number of latent nodes to generate
+        d = 2 # dimension of latent space
+        sigma_z = 1 # variance of latent space generation
+        alph = -5 # constant for theta generation; we call this alpha but i don't want to confuse it with the hawkes alpha
+        sigma_theta = 1.5 #0.01 # variance for theta generation
 
-    Z = generate_latent_Z(p, d, sigma_z)
-    theta = generate_theta(Z, alph, sigma_theta)
-    theta_tilde = logistic(theta)
+        Z = generate_latent_Z(p, d, sigma_z)
+        theta = generate_theta(Z, alph, sigma_theta)
+        theta_tilde = logistic(theta)
 
-    if not is_valid_alpha_matrix(theta_tilde):
-        print("not valid theta_tilde matrix")
-        continue
+        if not is_valid_alpha_matrix(theta_tilde):
+            print("not valid theta_tilde matrix")
+            continue
 
-    t, _ = simulation_by_cluster_representation(mu, theta_tilde, beta, time) # hawkes process using theta_tilde
+        t, _ = simulation_by_cluster_representation(mu, theta_tilde, beta, time) # hawkes process using theta_tilde
 
-    """optimizing theta"""
-    theta = np.array(theta).flatten() # flatten theta_tilde for optimize.fmin_l_bfgs_b
-    args = (p, d, Z, alph, sigma_theta, theta_tilde, t, mu, beta, time) # gathers variables
-    args_for_adm4 = (0.095, 0.047, t, mu, beta, time, p)
+        """optimizing theta"""
+        theta = np.array(theta).flatten() # flatten theta_tilde for optimize.fmin_l_bfgs_b
+        args = (p, d, Z, alph, sigma_theta, theta_tilde, t, mu, beta, time) # gathers variables
+        args_for_adm4 = (0.095, 0.047, t, mu, beta, time, p)
 
-    # for comparison
-    # ll = negative_complete_data_log_likelihood_of_theta(theta, *args)
-    # print("\nNegative complete-data log-likelihood:")
-    # print(ll)
+        # for comparison
+        # ll = negative_complete_data_log_likelihood_of_theta(theta, *args)
+        # print("\nNegative complete-data log-likelihood:")
+        # print(ll)
 
-    initial_guess = [0.5 for _ in theta] # arbitrary initial guess
-    bounds = []
-    for _ in range(len(theta)):
-        bounds.append((0.0001, 1-0.0001)) # bounds is (0,1), exclusive
-    bounds = np.array(bounds)
+        initial_guess = [0.5 for _ in theta] # arbitrary initial guess
+        bounds = []
+        for _ in range(len(theta)):
+            bounds.append((0.0001, 1-0.0001)) # bounds is (0,1), exclusive
+        bounds = np.array(bounds)
 
-    # do the optimization, with auto gradient
-    # print('\nOptimize with scipy-calculated gradient:')
-    opt_auto_grad = optimize.fmin_l_bfgs_b(func=negative_complete_data_log_likelihood_of_theta,
-                                        args=args,
-                                        x0=initial_guess,
-                                        approx_grad=True) # theta doesn't have bounds; theta_tilde does
-    adm4_optimize = optimize.fmin_l_bfgs_b(func=adm4_nll,
-                                        args=args_for_adm4,
-                                        x0=initial_guess, # estimating alphas, so need bounds
-                                        bounds=bounds,
-                                        approx_grad=True)
-    # for res in opt_auto_grad:
-        # print(res)
+        # do the optimization, with auto gradient
+        # print('\nOptimize with scipy-calculated gradient:')
+        opt_auto_grad = optimize.fmin_l_bfgs_b(func=negative_complete_data_log_likelihood_of_theta,
+                                            args=args,
+                                            x0=initial_guess,
+                                            approx_grad=True) # theta doesn't have bounds; theta_tilde does
+        adm4_optimize = optimize.fmin_l_bfgs_b(func=adm4_nll,
+                                            args=args_for_adm4,
+                                            x0=initial_guess, # estimating alphas, so need bounds
+                                            bounds=bounds,
+                                            approx_grad=True)
+        # for res in opt_auto_grad:
+            # print(res)
 
-    # print('\nActual theta values:')
-    # print(theta)
+        # print('\nActual theta values:')
+        # print(theta)
 
-    theta = theta.reshape((p,p)) # reshape theta_tilde
+        """get results"""
+        theta = theta.reshape((p,p)) # reshape theta_tilde
 
-    estimated_theta = opt_auto_grad[0].reshape((p,p))
-    estimated_alpha = logistic(estimated_theta) # feed estimated_theta through logistic again for fairer comparison to adm4
-    estimated_adm4 = adm4_optimize[0].reshape((p,p))
+        estimated_theta = opt_auto_grad[0].reshape((p,p))
+        estimated_alpha = logistic(estimated_theta) # feed estimated_theta through logistic again for fairer comparison to adm4
+        estimated_adm4 = adm4_optimize[0].reshape((p,p))
 
-    err_fro = np.linalg.norm(theta_tilde-estimated_alpha, ord='fro') # frobenius norm
-    err_rmse = rmse(np.array(theta_tilde), estimated_alpha)
+        err_fro = np.linalg.norm(theta_tilde-estimated_alpha, ord='fro') # frobenius norm
+        err_rmse = rmse(np.array(theta_tilde), estimated_alpha)
 
-    err_fro_adm4 = np.linalg.norm(theta_tilde-estimated_adm4, ord='fro') # frobenius norm
-    err_rmse_adm4 = rmse(np.array(theta_tilde), estimated_adm4)
-    # print("\nRMSE:")
-    # print(err)
+        err_fro_adm4 = np.linalg.norm(theta_tilde-estimated_adm4, ord='fro') # frobenius norm
+        err_rmse_adm4 = rmse(np.array(theta_tilde), estimated_adm4)
+        # print("\nRMSE:")
+        # print(err)
 
-    results.append({'frobenius error':err_fro,
-                    "rmse error":err_rmse,
-                    'frobenius adm4':err_fro_adm4,
-                    'rmse adm4':err_rmse_adm4,
+        """for mean ± st dev"""
+        err_fro_totals.append(err_fro)
+        err_rmse_totals.append(err_rmse)
+        err_fro_adm4_totals.append(err_fro_adm4)
+        err_rmse_adm4_totals.append(err_rmse_adm4)
+
+    results.append({'frobenius error mean':np.mean(err_fro_totals),
+                    'frobenius error std':np.std(err_fro_totals),
+                    "rmse error mean":np.mean(err_rmse_totals),
+                    "rmse error std":np.std(err_rmse_totals),
+                    'frobenius adm4 mean':np.mean(err_fro_adm4_totals),
+                    'frobenius adm4 std':np.std(err_fro_adm4_totals),
+                    'rmse adm4 mean':np.mean(err_rmse_adm4_totals),
+                    'rmse adm4 std':np.std(err_rmse_adm4_totals),
                     'parameter count':i})
     
     print(f"Finished {i-1} iterations")

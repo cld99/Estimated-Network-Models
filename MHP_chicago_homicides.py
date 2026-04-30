@@ -48,9 +48,10 @@ df = df[['datetime', 'AREA']] # drops unnecessary columns
 max_datetime = int(df['datetime'].max())
 
 """separate into train and test set"""
-df_train = df.loc[df['datetime'] <= max_datetime * 0.8]
+percent_for_train_set = 0.8
+df_train = df.loc[df['datetime'] <= max_datetime * percent_for_train_set]
 df_train = df_train.groupby(by='AREA') # group by
-df_test = df.loc[df['datetime'] > max_datetime * 0.8]
+df_test = df.loc[df['datetime'] > max_datetime * percent_for_train_set]
 df_test = df_test.groupby(by='AREA')
 
 num_params = int(df['AREA'].max())
@@ -65,12 +66,18 @@ for key, item in df_test: # for each group
     timestamps_test[key-1] = np.array(df_test.get_group(key)['datetime']) # put each group's timestamps into arr
     timestamps_test[key-1] = sorted(list(set(timestamps_test[key-1]))) # drops duplicates
 
+num_events = 0
+for k in timestamps_train:
+    num_events += len(k)
+for k in timestamps_test:
+    num_events += len(k)
+print("total number of events:", num_events)
 
 """optimize"""
 np.random.seed(0)
-mu = [0.1 for _ in range(num_params)] # TODO: estimate mu
+mu = [0.2/num_params for _ in range(num_params)]
 beta = 1
-time = max_datetime * 0.8
+time = max_datetime * percent_for_train_set
 
 p = num_params
 d = 2
@@ -119,7 +126,8 @@ print('\nAfter logistic:')
 print(estimated_theta_tilde)
 
 """compare on held-out data"""
-time = max_datetime * 0.2
+print("\nPercent for train set:", percent_for_train_set)
+time = max_datetime * (1-percent_for_train_set)
 args = (p, d, Z, alph, sigma_theta, estimated_theta_tilde, timestamps_test, mu, beta, time)
 ll = negative_complete_data_log_likelihood_of_theta(estimated_theta, *args)
 print("\nNegative log-likelihood of model:")
